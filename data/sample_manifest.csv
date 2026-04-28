@@ -1,0 +1,2 @@
+image_path,instruction,ambiguous,split
+samples/example.jpg,Move that away,1,train
