@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: sensor-vlm
+Version: 0.1.0
+Summary: Multimodal ambiguity detection from image and instruction inputs.
+Requires-Python: >=3.10

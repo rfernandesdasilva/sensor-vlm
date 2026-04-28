@@ -65,11 +65,11 @@ def download_dialfred(
 def _read_dialfred_csv(csv_path: str | Path) -> pd.DataFrame:
     """Read DialFRED CSV across the header variants seen in public mirrors."""
     path = Path(csv_path)
-    df = pd.read_csv(path)
+    df = pd.read_csv(path, low_memory=False)
     if set(DIALFRED_COLUMNS).issubset(df.columns):
         return df[DIALFRED_COLUMNS].copy()
 
-    df = pd.read_csv(path, header=None, names=DIALFRED_COLUMNS)
+    df = pd.read_csv(path, header=None, names=DIALFRED_COLUMNS, low_memory=False)
     if str(df.iloc[0]["split"]).strip().lower() in {"split", "data splits"}:
         df = df.iloc[1:].reset_index(drop=True)
     return df

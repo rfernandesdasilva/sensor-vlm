@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from itertools import combinations
+import os
 from pathlib import Path
 from typing import Any
+
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
 import numpy as np
 import requests

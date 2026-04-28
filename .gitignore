@@ -5,7 +5,7 @@ __pycache__/
 
 data/*.csv
 !data/sample_manifest.csv
-data/*.json
+data/*
 data/*.jsonl
 data/*.zip
 data/full_*/

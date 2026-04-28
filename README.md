@@ -15,6 +15,14 @@ python -m pip install -e .
 
 The BLIP-2 extractor uses `Salesforce/blip2-opt-2.7b` in fp16 on CUDA when available. Your RTX 4080 Super should be suitable for frozen feature extraction. The first BLIP-2 run downloads large Hugging Face model weights.
 
+Hugging Face authentication is optional for public models, but setting a token can improve rate limits:
+
+```powershell
+$env:HF_TOKEN = "your_huggingface_token"
+```
+
+The code disables the Windows symlink cache warning by default. If you want the most disk-efficient Hugging Face cache, enable Windows Developer Mode or run the shell as administrator.
+
 ## Project Layout
 
 - `src/sensor_vlm/data.py`: DialFRED download, cleaning, and instruction-level ambiguity labels.
@@ -72,10 +80,18 @@ pooled BLIP-2 Q-Former image embedding
 DialFRED gives the ambiguity labels. ALFRED provides visual trajectories. After downloading ALFRED data, link them with:
 
 ```powershell
+python -m sensor_vlm.download_alfred full --remove-archive
 python -m sensor_vlm.build_features link-alfred --alfred-data C:\path\to\alfred\data\full_2.1.0
 ```
 
 If raw ALFRED images are present, the linker adds `image_path` values that can be used to build a multimodal cache. If only `json_feat` is present, the manifest still records trajectory metadata, but BLIP-2 raw-image extraction needs the full raw image files.
+
+To avoid extracting the full ALFRED archive, create a small image subset directly from `full_2.1.0.7z`:
+
+```powershell
+python -m sensor_vlm.extract_alfred_subset --max-rows 60
+python -m sensor_vlm.build_features multimodal-manifest --manifest artifacts/features/dialfred_alfred_subset_manifest.csv
+```
 
 ## Inference
 

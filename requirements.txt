@@ -13,5 +13,6 @@ seaborn
 Pillow
 requests
 tqdm
+py7zr
 jupyter
 ipywidgets

@@ -1,2 +1,9 @@
 image_path,instruction,ambiguous,split
 samples/example.jpg,Move that away,1,train
+samples/example.jpg,Pet the dog next to the woman on the beach,0,train
+samples/example.jpg,Go over there,1,train
+samples/example.jpg,Describe the dog beside the seated woman,0,train
+samples/example.jpg,Clean it,1,valid_seen
+samples/example.jpg,Look at the dog sitting beside the woman,0,valid_seen
+samples/example.jpg,Pick that up,1,valid_unseen
+samples/example.jpg,Point to the woman sitting on the beach with the dog,0,valid_unseen
