@@ -2,6 +2,8 @@
 
 Sensor-VLM detects ambiguous vision-language instructions from an image and a natural-language command. It is based on the project POCs in `doc/`: a DialFRED ambiguity MLP and a BLIP-2 image feature extraction notebook.
 
+For the full start-to-finish workflow, see `doc/process.md`.
+
 ## Setup
 
 From Windows PowerShell:
