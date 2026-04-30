@@ -72,8 +72,11 @@ def train_from_cache(
                     "",
                     f"Test accuracy: {metrics['accuracy']:.4f}",
                     f"Test F1: {metrics['f1']:.4f}",
+                    f"Test macro F1: {metrics['macro_f1']:.4f}",
+                    f"Test balanced accuracy: {metrics['balanced_accuracy']:.4f}",
                     f"Test precision: {metrics['precision']:.4f}",
                     f"Test recall: {metrics['recall']:.4f}",
+                    f"Confusion matrix [[TN, FP], [FN, TP]]: {metrics['confusion_matrix'].tolist()}",
                     "",
                     report,
                 ]

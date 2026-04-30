@@ -6,7 +6,11 @@ import pandas as pd
 
 from .alfred_linker import link_dialfred_to_alfred
 from .data import load_instruction_labels
-from .features import build_multimodal_cache_from_manifest
+from .features import (
+    build_multimodal_cache_from_manifest,
+    build_multiview_cache_from_manifest,
+    build_text_baseline_cache,
+)
 from .paths import FEATURES_DIR, ensure_project_dirs
 
 
@@ -22,6 +26,35 @@ def command_multimodal_manifest(args: argparse.Namespace) -> None:
         instruction_column=args.instruction_column,
     )
     print(f"Saved multimodal feature cache: {output}")
+
+
+def command_multiview_manifest(args: argparse.Namespace) -> None:
+    ensure_project_dirs()
+    manifest = pd.read_csv(args.manifest)
+    if args.max_rows:
+        manifest = manifest.head(args.max_rows).copy()
+    output = build_multiview_cache_from_manifest(
+        manifest,
+        args.output,
+        image_paths_column=args.image_paths_column,
+        instruction_column=args.instruction_column,
+        max_views=args.max_views,
+    )
+    print(f"Saved multi-view feature cache: {output}")
+
+
+def command_text_manifest(args: argparse.Namespace) -> None:
+    ensure_project_dirs()
+    manifest = pd.read_csv(args.manifest)
+    if args.max_rows:
+        manifest = manifest.head(args.max_rows).copy()
+    output = build_text_baseline_cache(
+        manifest,
+        args.output,
+        text_columns=args.text_columns,
+        batch_size=args.batch_size,
+    )
+    print(f"Saved text feature cache: {output}")
 
 
 def command_link_alfred(args: argparse.Namespace) -> None:
@@ -57,6 +90,29 @@ def build_parser() -> argparse.ArgumentParser:
     multimodal.add_argument("--instruction-column", default="instruction")
     multimodal.add_argument("--max-rows", type=int, default=None)
     multimodal.set_defaults(func=command_multimodal_manifest)
+
+    multiview = subparsers.add_parser(
+        "multiview-manifest",
+        help="Build mean-pooled multimodal .npz features from a manifest with pipe-delimited image paths.",
+    )
+    multiview.add_argument("--manifest", required=True)
+    multiview.add_argument("--output", default=FEATURES_DIR / "multiview_features.npz")
+    multiview.add_argument("--image-paths-column", default="image_paths")
+    multiview.add_argument("--instruction-column", default="instruction")
+    multiview.add_argument("--max-views", type=int, default=None)
+    multiview.add_argument("--max-rows", type=int, default=None)
+    multiview.set_defaults(func=command_multiview_manifest)
+
+    text = subparsers.add_parser(
+        "text-manifest",
+        help="Build text-only .npz features from any manifest with labels and splits.",
+    )
+    text.add_argument("--manifest", required=True)
+    text.add_argument("--output", default=FEATURES_DIR / "text_features.npz")
+    text.add_argument("--text-columns", nargs="+", default=["instruction"])
+    text.add_argument("--batch-size", type=int, default=128)
+    text.add_argument("--max-rows", type=int, default=None)
+    text.set_defaults(func=command_text_manifest)
 
     return parser
 

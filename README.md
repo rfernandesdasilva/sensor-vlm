@@ -33,6 +33,7 @@ The code disables the Windows symlink cache warning by default. If you want the 
 - `src/sensor_vlm/model.py`: MLP classifier, training loop, evaluation, and checkpoint loading.
 - `src/sensor_vlm/train.py`: command-line training workflows.
 - `src/sensor_vlm/build_features.py`: ALFRED linking and multimodal cache creation.
+- `src/sensor_vlm/prepare_ambi3d_manifest.py`: Ambi3D download and manifest normalization.
 - `src/sensor_vlm/infer.py`: image + instruction inference with a template clarification question.
 - `notebooks/`: notebook entry points for the baseline, BLIP-2 feature inspection, and multimodal MLP training.
 
@@ -66,6 +67,12 @@ For a manifest containing `image_path`, `instruction`, `ambiguous`, and `split` 
 ```powershell
 python -m sensor_vlm.build_features multimodal-manifest --manifest data/my_manifest.csv
 python -m sensor_vlm.train train-cache --features artifacts/features/multimodal_features.npz --checkpoint artifacts/checkpoints/best_multimodal_mlp.pt
+```
+
+For text-only training from any normalized manifest:
+
+```powershell
+python -m sensor_vlm.build_features text-manifest --manifest artifacts\features\my_manifest.csv --output artifacts\features\my_text_features.npz
 ```
 
 The feature vector is:
@@ -104,4 +111,16 @@ python -m sensor_vlm.infer --image samples/example.jpg --instruction "Move that 
 ```
 
 The result includes the ambiguity label, probability, BLIP-2 scene caption, caption-variance score, and a clarification question when the instruction is ambiguous.
+
+## Ambi3D Baselines
+
+Ambi3D can be normalized into the same `instruction`, `ambiguous`, and `split` cache format:
+
+```powershell
+python -m sensor_vlm.prepare_ambi3d_manifest --output artifacts\features\ambi3d_manifest.csv
+python -m sensor_vlm.build_features text-manifest --manifest artifacts\features\ambi3d_manifest.csv --output artifacts\features\ambi3d_text_features.npz
+```
+
+If local scene renders are available, add `--view-root data\ambi3d_views` and use `multimodal-manifest` or `multiview-manifest` for visual baselines.
+See `doc/ambi3d-image-prep.md` for the ScanNet scene list and image-folder conventions.
 

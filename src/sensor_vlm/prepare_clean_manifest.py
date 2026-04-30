@@ -236,6 +236,56 @@ def balance_after_matching(
     return pd.concat(selected, ignore_index=True)
 
 
+def sample_after_matching(
+    manifest: pd.DataFrame,
+    *,
+    target_rows: int | None,
+    seed: int,
+) -> pd.DataFrame:
+    """Sample rows by split without forcing class balance."""
+    if not target_rows or len(manifest) <= target_rows:
+        return manifest.sample(frac=1.0, random_state=seed).reset_index(drop=True)
+
+    rng = np.random.default_rng(seed)
+    selected: list[pd.DataFrame] = []
+    desired_rows = {
+        split: int(target_rows * fraction)
+        for split, fraction in SPLIT_FRACTIONS.items()
+    }
+    assigned = sum(desired_rows.values())
+    if assigned < target_rows:
+        desired_rows["train"] += target_rows - assigned
+
+    for split in ("train", "valid_seen", "valid_unseen"):
+        split_df = manifest[manifest["split"].astype(str).eq(split)]
+        if split_df.empty:
+            continue
+        rows = min(len(split_df), desired_rows.get(split, len(split_df)))
+        selected.append(split_df.sample(n=rows, random_state=int(rng.integers(0, 2**31 - 1))))
+
+    if not selected:
+        raise RuntimeError("No rows available after filtering and image matching.")
+    sampled = pd.concat(selected)
+    if len(sampled) < target_rows:
+        remaining = manifest.index.difference(sampled.index)
+        extra_count = min(target_rows - len(sampled), len(remaining))
+        if extra_count:
+            sampled = pd.concat(
+                [
+                    sampled,
+                    manifest.loc[remaining].sample(
+                        n=extra_count,
+                        random_state=int(rng.integers(0, 2**31 - 1)),
+                    ),
+                ]
+            )
+
+    return sampled.sample(
+        frac=1.0,
+        random_state=int(rng.integers(0, 2**31 - 1)),
+    ).reset_index(drop=True)
+
+
 def build_clean_manifest(
     *,
     output: str | Path,
@@ -252,6 +302,7 @@ def build_clean_manifest(
     target_rows: int | None = 1500,
     seed: int = 42,
     no_download: bool = False,
+    balance: bool = True,
 ) -> Path:
     ensure_project_dirs()
     labels = load_instruction_labels(csv, download=not no_download)
@@ -268,16 +319,20 @@ def build_clean_manifest(
     if matched.empty:
         raise RuntimeError("No clean labels could be matched to existing ALFRED raw images.")
 
-    balanced = balance_after_matching(matched, target_rows=target_rows, seed=seed)
+    selected = (
+        balance_after_matching(matched, target_rows=target_rows, seed=seed)
+        if balance
+        else sample_after_matching(matched, target_rows=target_rows, seed=seed)
+    )
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    balanced.to_csv(output_path, index=False)
+    selected.to_csv(output_path, index=False)
 
     print(f"Labels before filtering: {len(labels):,}")
     print(f"Labels after confidence filtering: {len(confident):,}")
     print(f"Rows with existing images: {len(matched):,}")
-    print(f"Balanced rows written: {len(balanced):,}")
-    print(balanced.groupby(["split", "ambiguous"]).size().unstack(fill_value=0))
+    print(f"Rows written: {len(selected):,}")
+    print(selected.groupby(["split", "ambiguous"]).size().unstack(fill_value=0))
     print(f"Manifest: {output_path}")
     return output_path
 
@@ -299,6 +354,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target-rows", type=int, default=1500)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--no-download", action="store_true")
+    parser.add_argument(
+        "--no-balance",
+        action="store_true",
+        help="Preserve natural class skew after image matching; training remains class-weighted.",
+    )
     return parser
 
 
@@ -320,6 +380,7 @@ def main() -> None:
         target_rows=args.target_rows,
         seed=args.seed,
         no_download=args.no_download,
+        balance=not args.no_balance,
     )
 
 

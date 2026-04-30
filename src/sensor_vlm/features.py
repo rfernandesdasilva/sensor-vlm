@@ -117,12 +117,25 @@ def build_text_baseline_cache(
     labels_df: pd.DataFrame,
     output_path: str | Path,
     *,
+    text_columns: list[str] | None = None,
     text_model_name: str = DEFAULT_TEXT_MODEL,
     batch_size: int = 128,
 ) -> Path:
     embedder = TextEmbedder(text_model_name)
-    instructions = labels_df["instruction"].astype(str).tolist()
-    embeddings = embedder.encode(instructions, batch_size=batch_size)
+    columns = text_columns or ["instruction"]
+    missing = set(columns) - set(labels_df.columns)
+    if missing:
+        raise ValueError(f"Dataframe is missing text columns: {sorted(missing)}")
+    texts = (
+        labels_df[columns]
+        .fillna("")
+        .astype(str)
+        .agg(" ".join, axis=1)
+        .str.replace(r"\s+", " ", regex=True)
+        .str.strip()
+        .tolist()
+    )
+    embeddings = embedder.encode(texts, batch_size=batch_size)
     return save_feature_cache(
         output_path,
         features=embeddings,
@@ -185,6 +198,79 @@ def build_multimodal_cache_from_manifest(
     metadata["vqa_text"] = [record.vqa_text for record in records]
 
     return save_feature_cache(output_path, features=features, labels=labels, splits=splits, metadata=metadata)
+
+
+def _split_image_paths(value: object) -> list[str]:
+    if pd.isna(value):
+        return []
+    return [part.strip() for part in str(value).split("|") if part.strip()]
+
+
+def build_multiview_cache_from_manifest(
+    manifest: pd.DataFrame,
+    output_path: str | Path,
+    *,
+    image_paths_column: str = "image_paths",
+    instruction_column: str = "instruction",
+    label_column: str = "ambiguous",
+    split_column: str = "split",
+    text_model_name: str = DEFAULT_TEXT_MODEL,
+    blip2_model_name: str = "Salesforce/blip2-opt-2.7b",
+    max_views: int | None = None,
+) -> Path:
+    """Extract BLIP-2 features for multiple views and mean-pool them per row."""
+    required = {image_paths_column, instruction_column}
+    missing = required - set(manifest.columns)
+    if missing:
+        raise ValueError(f"Manifest is missing required columns: {sorted(missing)}")
+
+    text_embedder = TextEmbedder(text_model_name)
+    blip2 = Blip2FeatureExtractor(blip2_model_name)
+    features: list[np.ndarray] = []
+    captions: list[str] = []
+    ambiguity_scores: list[float] = []
+    view_counts: list[int] = []
+
+    for _, row in tqdm(manifest.iterrows(), total=len(manifest), desc="Extracting multi-view BLIP-2 features"):
+        image_paths = _split_image_paths(row[image_paths_column])
+        if max_views:
+            image_paths = image_paths[:max_views]
+        if not image_paths:
+            raise ValueError(f"Row has no image paths in column {image_paths_column}: {row.to_dict()}")
+
+        row_features: list[np.ndarray] = []
+        row_captions: list[str] = []
+        row_scores: list[float] = []
+        for image_path in image_paths:
+            feature, blip_features, _ = build_single_multimodal_feature(
+                image_path=image_path,
+                instruction=str(row[instruction_column]),
+                blip2=blip2,
+                text_embedder=text_embedder,
+            )
+            row_features.append(feature)
+            row_captions.append(blip_features.caption)
+            row_scores.append(blip_features.caption_ambiguity_score)
+
+        features.append(np.mean(np.stack(row_features), axis=0).astype(np.float32))
+        captions.append(" | ".join(row_captions))
+        ambiguity_scores.append(float(np.mean(row_scores)))
+        view_counts.append(len(row_features))
+
+    labels = manifest[label_column].to_numpy(dtype=np.int64) if label_column in manifest.columns else None
+    splits = manifest[split_column].astype(str).to_numpy() if split_column in manifest.columns else None
+    metadata = manifest.copy()
+    metadata["blip2_captions"] = captions
+    metadata["caption_ambiguity_score"] = ambiguity_scores
+    metadata["view_count"] = view_counts
+
+    return save_feature_cache(
+        output_path,
+        features=np.stack(features),
+        labels=labels,
+        splits=splits,
+        metadata=metadata,
+    )
 
 
 def load_torch_blip2_feature(path: str | Path) -> dict[str, object]:

@@ -186,6 +186,18 @@ A sidecar metadata file is also written next to the cache:
 <feature-cache>.metadata.json
 ```
 
+Text-only caches can also be built from any normalized manifest:
+
+```powershell
+python -m sensor_vlm.build_features text-manifest --manifest artifacts\features\clean-balanced-1500_manifest.csv --output artifacts\features\clean-balanced-1500_text_features.npz
+```
+
+For multi-view scene datasets, store pipe-delimited image paths in `image_paths` and pool BLIP-2 feature vectors:
+
+```powershell
+python -m sensor_vlm.build_features multiview-manifest --manifest artifacts\features\ambi3d_view_manifest.csv --max-views 4 --output artifacts\features\ambi3d_multiview_features.npz
+```
+
 ## 7. Model Training
 
 Train the MLP from a saved feature cache:
@@ -212,6 +224,7 @@ artifacts/reports/*.txt   -> evaluation report
 ```
 
 The report includes test accuracy, F1, precision, recall, and a class-level classification report for `Not Ambiguous` and `Ambiguous`.
+New reports also include macro F1, balanced accuracy, and a `[[TN, FP], [FN, TP]]` confusion matrix.
 
 ## 8. Inference
 
@@ -284,5 +297,33 @@ The main limitation is data quality and scale. Small subsets are useful for smok
 ```text
 doc/early_results.md
 doc/late_results.md
+```
+
+## 12. Ambi3D And Target-3000 Experiments
+
+Ambi3D can be downloaded from Hugging Face and normalized into Sensor-VLM's manifest shape:
+
+```powershell
+python -m sensor_vlm.prepare_ambi3d_manifest --output artifacts\features\ambi3d_manifest.csv
+python -m sensor_vlm.build_features text-manifest --manifest artifacts\features\ambi3d_manifest.csv --output artifacts\features\ambi3d_text_features.npz
+python -m sensor_vlm.train train-cache --features artifacts\features\ambi3d_text_features.npz --checkpoint artifacts\checkpoints\ambi3d_text_mlp.pt --report artifacts\reports\ambi3d-view-text-results.txt
+```
+
+For visual Ambi3D baselines, first provide local scene views organized by `scene_id` or with `scene_id` in each image path:
+
+```powershell
+python -m sensor_vlm.prepare_ambi3d_manifest --view-root data\ambi3d_views --max-views 4 --output artifacts\features\ambi3d_view_manifest.csv
+python -m sensor_vlm.build_features multimodal-manifest --manifest artifacts\features\ambi3d_view_manifest.csv --output artifacts\features\ambi3d_single_image_features.npz
+python -m sensor_vlm.build_features multiview-manifest --manifest artifacts\features\ambi3d_view_manifest.csv --max-views 4 --output artifacts\features\ambi3d_multiview_features.npz
+```
+
+The target-3000 DialFRED/ALFRED variants are documented in:
+
+```text
+doc/dialfred-clean-strict-target3000-results.md
+doc/dialfred-clean-relaxed-target3000-results.md
+doc/dialfred-weighted-target3000-results.md
+doc/ambi3d-view-baselines-results.md
+doc/ambiguity-experiments-comparison-2026.md
 ```
 

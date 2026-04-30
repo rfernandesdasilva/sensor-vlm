@@ -7,7 +7,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.metrics import accuracy_score, classification_report, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -121,8 +129,11 @@ def evaluate_binary(
         "loss": total_loss / max(len(y_true), 1),
         "accuracy": accuracy_score(y_true, y_pred),
         "f1": f1_score(y_true, y_pred, zero_division=0),
+        "macro_f1": f1_score(y_true, y_pred, average="macro", zero_division=0),
+        "balanced_accuracy": balanced_accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),
         "recall": recall_score(y_true, y_pred, zero_division=0),
+        "confusion_matrix": confusion_matrix(y_true, y_pred, labels=[0, 1]),
         "preds": y_pred,
         "labels": y_true,
     }
