@@ -96,7 +96,7 @@ Confusion matrix:
 ```text
                     Pred Not Ambiguous   Pred Ambiguous
 Actual Not Ambiguous          3                 7
-Actual Ambiguous              4                 6
+Actual Ambiguous              2                 8
 ```
 
 ## Qualitative Observations
@@ -198,8 +198,8 @@ Best validation accuracy: 0.640
 Test set, using `valid_unseen`:
 
 ```text
-Accuracy: 0.52
-Macro F1: 0.491
+Accuracy: 0.48
+Macro F1: 0.47
 ```
 
 Class-level test results:
@@ -214,8 +214,8 @@ Confusion matrix:
 
 ```text
                     Pred Not Ambiguous   Pred Ambiguous
-Actual Not Ambiguous         14                36
-Actual Ambiguous             12                38
+Actual Not Ambiguous         19                31
+Actual Ambiguous             21                29
 ```
 
 Caption ambiguity score distribution:
@@ -226,7 +226,7 @@ Min: 0.480
 Max: 0.911
 ```
 
-The 300-row model improved validation performance but still overpredicts ambiguity on the unseen split. Ambiguous recall reached `0.76`, but many not-ambiguous examples were incorrectly marked ambiguous.
+The 300-row model improved validation performance but still overpredicts ambiguity on the unseen split. Ambiguous recall reached `0.58`, but many not-ambiguous examples were incorrectly marked ambiguous.
 
 This suggests the model is picking up a useful ambiguity signal, but the current setup needs better negative examples, more data, and likely better frame selection before test accuracy stabilizes.
 

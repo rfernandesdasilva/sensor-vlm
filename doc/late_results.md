@@ -37,9 +37,9 @@ pooled BLIP-2 Q-Former image embedding
 The current 300-row run reached:
 
 ```text
-Test accuracy: 0.52
-Macro F1: 0.491
-Ambiguous recall: 0.76
+Test accuracy: 0.48
+Macro F1: 0.47
+Ambiguous recall: 0.58
 ```
 
 A realistic target after scaling data and improving frame selection is:
@@ -68,7 +68,7 @@ The following table is a **target format** for the final report.
 ```text
 Model                         Accuracy   Macro F1   Ambiguous Recall   Not-Ambiguous Recall
 Text-only MLP baseline         0.78       0.54       0.89               0.18
-Multimodal MLP, 300 rows        0.52       0.49       0.76               0.28
+Multimodal MLP, 300 rows        0.48       0.47       0.58               0.38
 Multimodal MLP, larger subset   0.65-0.72  0.62-0.70  0.70-0.82          0.55-0.68
 ```
 
