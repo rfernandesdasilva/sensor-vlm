@@ -113,6 +113,7 @@ def assign_sensor_vlm_splits(
     scenes = sorted(df.loc[train_indices, "scene_id"].astype(str).unique())
     rng = np.random.default_rng(seed)
     rng.shuffle(scenes)
+    # split by scene so validation does not reuse train scenes.
     valid_scene_count = max(1, int(len(scenes) * valid_fraction))
     valid_scenes = set(scenes[:valid_scene_count])
     valid_mask = ~test_mask & df["scene_id"].astype(str).isin(valid_scenes)
@@ -126,6 +127,7 @@ def discover_scene_views(view_roots: Iterable[str | Path], scene_id: str, *, max
     for root in [Path(path) for path in view_roots]:
         if not root.exists():
             continue
+        # support both direct scene folders and nested scannet exports.
         scene_dirs = [root / scene_id] if (root / scene_id).exists() else []
         scene_dirs.extend(path for path in root.rglob(scene_id) if path.is_dir())
 
@@ -184,6 +186,7 @@ def build_ambi3d_manifest(
 
     view_roots = list(view_roots)
     if view_roots:
+        # image_path is for single-view runs; image_paths is for multi-view runs.
         view_lists = [
             discover_scene_views(view_roots, scene_id, max_views=max_views)
             for scene_id in manifest["scene_id"].astype(str)
@@ -192,6 +195,7 @@ def build_ambi3d_manifest(
         manifest["image_path"] = [paths[0] if paths else "" for paths in view_lists]
 
     if max_rows and len(manifest) > max_rows:
+        # keep a small balanced sample for smoke tests.
         sampled: list[pd.DataFrame] = []
         groups = list(manifest.groupby(["split", "ambiguous"], group_keys=False))
         per_group = max(1, max_rows // len(groups))

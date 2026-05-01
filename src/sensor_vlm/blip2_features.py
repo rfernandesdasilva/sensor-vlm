@@ -17,7 +17,7 @@ from transformers import Blip2ForConditionalGeneration, Blip2Processor
 
 DEFAULT_MODEL_NAME = "Salesforce/blip2-opt-2.7b"
 
-DEFAULT_CAPTION_STRATEGIES: dict[str, dict[str, Any]] = {
+DEFAULT_CAPTION_STRATEGIES: dict[str, dict[str, Any]] = {  
     "greedy": {"do_sample": False, "max_new_tokens": 50},
     "beam_5": {"do_sample": False, "num_beams": 5, "max_new_tokens": 50},
     "nucleus_0_9": {"do_sample": True, "top_p": 0.9, "temperature": 0.7, "max_new_tokens": 50},
@@ -30,7 +30,8 @@ DEFAULT_CAPTION_STRATEGIES: dict[str, dict[str, Any]] = {
     },
 }
 
-DEFAULT_VQA_QUESTIONS = [
+# vqa questions are from the BLIP-2 paper.
+DEFAULT_VQA_QUESTIONS = [ 
     "What is the main subject of this image?",
     "What is happening in this image?",
     "Where was this photo taken?",

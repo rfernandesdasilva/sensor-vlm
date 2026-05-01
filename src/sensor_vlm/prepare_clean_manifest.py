@@ -46,6 +46,7 @@ def _candidate_targets(row: pd.Series) -> list[int]:
     start = _as_int(row.get("subgoal_start"))
     end = _as_int(row.get("subgoal_end"))
     idx = _as_int(row.get("subgoal_idx"))
+    # try the midpoint first because it is usually closest to the action.
     if start is not None and end is not None:
         starts.append(max(0, (start + end) // 2))
     if start is not None:
@@ -68,6 +69,7 @@ def _existing_image_path(
 ) -> Path | None:
     rel = Path(split) / task_id / trial_id / "raw_images" / image_name
     names = [image_name]
+    # some extracted subsets switch between png and jpg.
     if image_name.lower().endswith(".png"):
         names.append(f"{Path(image_name).stem}.jpg")
     elif image_name.lower().endswith(".jpg"):
@@ -216,6 +218,7 @@ def balance_after_matching(
         split_df = manifest[manifest["split"].astype(str).eq(split)]
         negative = split_df[split_df["ambiguous"].eq(0)]
         positive = split_df[split_df["ambiguous"].eq(1)]
+        # the smaller class sets the balanced size.
         pair_count = min(len(negative), len(positive))
         if target_rows:
             pair_count = min(pair_count, desired_pairs.get(split, pair_count))
@@ -254,6 +257,7 @@ def sample_after_matching(
     }
     assigned = sum(desired_rows.values())
     if assigned < target_rows:
+        # put any rounding leftover into train.
         desired_rows["train"] += target_rows - assigned
 
     for split in ("train", "valid_seen", "valid_unseen"):

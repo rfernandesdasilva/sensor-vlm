@@ -32,6 +32,7 @@ def build_alfred_index(alfred_data_dir: str | Path) -> pd.DataFrame:
             continue
 
         trajectory_dir = traj_json.parent
+        # use folder names when the json is missing ids.
         split = trajectory_dir.parts[-3] if len(trajectory_dir.parts) >= 3 else ""
         task_id = str(data.get("task_id") or trajectory_dir.parent.name)
         trial_id = str(data.get("trial_id") or trajectory_dir.name)
@@ -67,6 +68,7 @@ def select_image_for_subgoal(
     selected = None
     if subgoal_idx is not None and str(subgoal_idx) != "nan":
         try:
+            # prefer the exact high-level subgoal frame.
             high_idx = int(float(subgoal_idx))
             selected = next((img for img in images if int(img.get("high_idx", -1)) == high_idx), None)
         except ValueError:
@@ -74,11 +76,13 @@ def select_image_for_subgoal(
 
     if selected is None and subgoal_start is not None and str(subgoal_start) != "nan":
         try:
+            # otherwise choose the closest low-level frame.
             low_idx = int(float(subgoal_start))
             selected = min(images, key=lambda img: abs(int(img.get("low_idx", 0)) - low_idx))
         except ValueError:
             selected = None
 
+    # fall back to the first frame so linked rows can still be tested.
     selected = selected or images[0]
     image_name = selected.get("image_name")
     if not image_name:
@@ -87,8 +91,9 @@ def select_image_for_subgoal(
     image_path = Path(trajectory_dir) / "raw_images" / str(image_name)
     return image_path if image_path.exists() else None
 
-
-def link_dialfred_to_alfred(
+# ended up adding a check to ensure the dialfred_labels has the correct columns.
+# this is important because the alfred_linker is used in the dialfred_to_alfred.py script.
+def link_dialfred_to_alfred( 
     dialfred_labels: pd.DataFrame,
     alfred_data_dir: str | Path,
     *,
@@ -108,6 +113,7 @@ def link_dialfred_to_alfred(
     image_paths: list[str | None] = []
     for _, row in tqdm(merged.iterrows(), total=len(merged), desc="Selecting ALFRED frames"):
         if pd.isna(row.get("traj_json")):
+            # keep unmatched rows in the manifest with an empty image path.
             image_paths.append(None)
             continue
         image_path = select_image_for_subgoal(
